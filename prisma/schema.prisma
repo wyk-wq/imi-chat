@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
+  password  String
+  email     String?   @unique
+  socketId  String?
+  status    String    @default("online")
+  createdAt DateTime  @default(now())
+
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  sessions         Session[]
+  contacts         Contact[] @relation("UserContacts")
+  contactedBy      Contact[] @relation("ContactedByUsers")
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  content    String   @db.Text
+  senderId   Int
+  receiverId Int?
+  isPrivate  Boolean  @default(false)
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now()) @db.Timestamp(6)
+
+  sender   User  @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User? @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model Session {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+  socketId  String
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+}
+
+model Tags {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  contactId Int
+  createdAt DateTime @default(now())
+
+  user    User @relation("UserContacts", fields: [userId], references: [id])
+  contact User @relation("ContactedByUsers", fields: [contactId], references: [id])
+
+  @@unique([userId, contactId])
+} 
