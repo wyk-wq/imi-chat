@@ -10,6 +10,14 @@
       "continue": true
     },
     {
+      "src": "/api/socketio",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
+    },
+    {
       "src": "/api/socketio/(.*)",
       "dest": "/api/socketio"
     },

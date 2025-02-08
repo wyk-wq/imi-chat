@@ -15,7 +15,12 @@ interface NextApiResponseWithSocket extends NextApiResponse {
   socket: SocketWithIO
 }
 
-const SocketHandler = (req: NextApiRequest, res: NextApiResponseWithSocket) => {
+const SocketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket) => {
+  if (req.method !== 'GET') {
+    res.status(400).json({ error: 'Invalid method' })
+    return
+  }
+
   if (res.socket.server.io) {
     console.log('Socket is already running')
     res.end()
@@ -26,8 +31,11 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseWithSocket) => {
     path: '/api/socketio',
     addTrailingSlash: false,
     cors: {
-      origin: '*',
-      methods: ['GET', 'POST']
+      origin: process.env.NODE_ENV === 'production' 
+        ? 'https://imi-chat-git-main-wykseans-projects.vercel.app'
+        : 'http://localhost:3000',
+      methods: ['GET', 'POST'],
+      credentials: true
     },
     transports: ['polling', 'websocket'],
     connectionStateRecovery: {
@@ -39,13 +47,15 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseWithSocket) => {
   res.socket.server.io = io
 
   io.on('connection', (socket) => {
-    console.log('Client connected')
+    console.log('Client connected:', socket.id)
     
-    socket.on('disconnect', () => {
-      console.log('Client disconnected')
+    socket.on('error', (error) => {
+      console.error('Socket error:', error)
     })
     
-    // 其他 socket 事件处理...
+    socket.on('disconnect', (reason) => {
+      console.log('Client disconnected:', reason)
+    })
   })
 
   console.log('Setting up socket')
@@ -56,6 +66,7 @@ export default SocketHandler
 
 export const config = {
   api: {
-    bodyParser: false
+    bodyParser: false,
+    externalResolver: true
   }
 } 
