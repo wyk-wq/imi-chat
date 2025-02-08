@@ -35,26 +35,23 @@ app.prepare().then(async () => {
     await prisma.$connect()
     console.log('Database connected successfully')
 
-    const server = createServer(async (req, res) => {
-      try {
-        const parsedUrl = parse(req.url!, true)
-        await handle(req, res, parsedUrl)
-      } catch (err) {
-        console.error('Error occurred handling', req.url, err)
-        res.statusCode = 500
-        res.end('internal server error')
-      }
+    const server = createServer((req, res) => {
+      const parsedUrl = parse(req.url!, true)
+      handle(req, res, parsedUrl)
     })
 
     const io = new Server(server, {
-      cors: {
-        origin: process.env.NODE_ENV === 'production' 
-          ? ['https://imi-chat.vercel.app'] 
-          : ['http://localhost:3000'],
-        methods: ['GET', 'POST'],
-        credentials: true
-      },
       path: '/api/socketio',
+      addTrailingSlash: false,
+      cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+      },
+      transports: ['polling', 'websocket'],
+      connectionStateRecovery: {
+        maxDisconnectionDuration: 2 * 60 * 1000,
+        skipMiddlewares: true,
+      }
     })
 
     // Socket 认证中间件
