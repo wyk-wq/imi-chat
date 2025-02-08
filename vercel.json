@@ -5,8 +5,16 @@
   ],
   "routes": [
     {
+      "src": "/_next/static/(.*)",
+      "headers": { "cache-control": "public, max-age=31536000, immutable" },
+      "continue": true
+    },
+    {
       "src": "/api/socketio/(.*)",
       "dest": "/api/socketio"
+    },
+    {
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
