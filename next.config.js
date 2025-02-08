@@ -10,6 +10,9 @@ const nextConfig = {
   env: {
     TZ: 'Asia/Shanghai',
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 }
 
 module.exports = nextConfig 

@@ -9,12 +9,15 @@ import jwt from 'jsonwebtoken'
 
 const prisma = new PrismaClient()
 const dev = process.env.NODE_ENV !== 'production'
-const hostname = 'localhost'
-const port = 3000
+const hostname = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost'
+const port = parseInt(process.env.PORT || '3000', 10)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
-const app = next({ dev, hostname, port })
-const handle = app.getRequestHandler()
+interface TimeResponse {
+  local: {
+    datetime: string;
+  };
+}
 
 interface AuthenticatedSocket extends Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap> {
   user?: {
@@ -22,6 +25,9 @@ interface AuthenticatedSocket extends Socket<DefaultEventsMap, DefaultEventsMap,
     username: string;
   }
 }
+
+const app = next({ dev, hostname, port })
+const handle = app.getRequestHandler()
 
 // 在应用启动前确保数据库连接
 app.prepare().then(async () => {
@@ -42,8 +48,11 @@ app.prepare().then(async () => {
 
     const io = new Server(server, {
       cors: {
-        origin: '*',
+        origin: process.env.NODE_ENV === 'production' 
+          ? ['https://imi-chat.vercel.app'] 
+          : ['http://localhost:3000'],
         methods: ['GET', 'POST'],
+        credentials: true
       },
       path: '/api/socketio',
     })
@@ -89,14 +98,7 @@ app.prepare().then(async () => {
 
         // 获取联系人列表
         const contacts = await getContactList(socket.user.id)
-        console.log('Initial contacts for user:', {
-          userId: socket.user.id,
-          username: socket.user.username,
-          contacts
-        })
-
-        // 发送联系人列表
-        socket.emit('contact-list', contacts)  // 使用新的事件名称
+        socket.emit('contact-list', contacts)
 
         // 通知所有联系人该用户已上线
         contacts.forEach(async (contact) => {
@@ -105,7 +107,7 @@ app.prepare().then(async () => {
           
           if (targetSocket) {
             const targetContacts = await getContactList(contact.contact.id)
-            targetSocket.emit('contact-list', targetContacts)  // 使用新的事件名称
+            targetSocket.emit('contact-list', targetContacts)
           }
         })
 
@@ -615,70 +617,58 @@ app.prepare().then(async () => {
     server.listen(port, hostname, () => {
       console.log(`> Ready on http://${hostname}:${port}`)
     })
+
+    // 优雅关闭
+    const cleanup = async () => {
+      await prisma.$disconnect()
+      server.close(() => {
+        console.log('Server closed')
+        process.exit(0)
+      })
+    }
+
+    process.on('SIGTERM', cleanup)
+    process.on('SIGINT', cleanup)
+
   } catch (error) {
     console.error('Server initialization error:', error)
+    await prisma.$disconnect()
     process.exit(1)
   }
 })
 
-// 优雅关闭
-process.on('beforeExit', async () => {
-  await prisma.$disconnect()
-})
-
 // 辅助函数：获取用户的联系人列表
 async function getContactList(userId: number) {
-  console.log('Getting contacts for user:', userId)
-  
   try {
-    // 获取联系人关系
     const contacts = await prisma.contact.findMany({
       where: {
         OR: [
           { userId: userId },
           { contactId: userId }
         ]
-      }
-    })
-
-    console.log('Found contact relationships:', contacts)
-
-    if (contacts.length === 0) {
-      console.log('No contacts found for user:', userId)
-      return []
-    }
-
-    // 获取所有联系人的用户信息
-    const contactPromises = contacts.map(async (contact) => {
-      const targetUserId = contact.userId === userId ? contact.contactId : contact.userId
-      const userInfo = await prisma.user.findUnique({
-        where: { id: targetUserId },
-        select: {
-          id: true,
-          username: true,
-          socketId: true,
-          status: true
-        }
-      })
-
-      if (!userInfo) {
-        console.log('Warning: User info not found for id:', targetUserId)
-        return null
-      }
-
-      return {
-        id: contact.id,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            status: true
+          }
+        },
         contact: {
-          id: userInfo.id,
-          username: userInfo.username,
-          status: userInfo.socketId ? 'online' : 'offline'
+          select: {
+            id: true,
+            username: true,
+            status: true
+          }
         }
       }
     })
 
-    const formattedContacts = (await Promise.all(contactPromises)).filter(Boolean)
-    console.log('Formatted contacts for user:', userId, formattedContacts)
-    return formattedContacts
+    return contacts.map(contact => ({
+      id: contact.id,
+      contact: contact.userId === userId ? contact.contact : contact.user
+    }))
   } catch (error) {
     console.error('Error getting contacts:', error)
     return []
