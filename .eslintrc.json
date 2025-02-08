@@ -1,0 +1,8 @@
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    // 禁用特定规则
+    "@next/next/no-img-element": "off",
+    "@next/next/no-html-link-for-pages": "off"
+  }
+} 
