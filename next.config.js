@@ -44,6 +44,12 @@ const nextConfig = {
     }
     return config
   },
+
+  // 添加这个配置
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
+  
+  // 禁用静态导出
+  staticPageGenerationTimeout: 0,
 }
 
 module.exports = nextConfig 
