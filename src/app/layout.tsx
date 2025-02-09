@@ -1,13 +1,13 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "实时聊天",
-  description: "基于 Next.js 的实时聊天应用",
-};
+  title: 'Chat App',
+  description: 'Real-time chat application',
+}
 
 export default function RootLayout({
   children,
@@ -16,7 +16,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh">
-      <body className={inter.className}>{children}</body>
+      <body>
+        {children}
+      </body>
     </html>
-  );
+  )
 }

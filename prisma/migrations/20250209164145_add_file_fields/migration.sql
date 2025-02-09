@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `Message` ADD COLUMN `fileName` VARCHAR(191) NULL,
+    ADD COLUMN `fileSize` INTEGER NULL,
+    ADD COLUMN `fileType` VARCHAR(191) NULL,
+    ADD COLUMN `fileUrl` VARCHAR(191) NULL;

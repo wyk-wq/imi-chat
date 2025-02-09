@@ -1,13 +1,10 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider          = "mysql"
-  url               = env("DATABASE_URL")
-  relationMode      = "prisma"
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -16,39 +13,73 @@ model User {
   password  String
   email     String?   @unique
   socketId  String?
-  status    String    @default("online")
+  status    String    @default("offline")
   createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  sentMessages     Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
-  sessions         Session[]
-  contacts         Contact[] @relation("UserContacts")
-  contactedBy      Contact[] @relation("ContactedByUsers")
+  // 联系人关系
+  contacts  Contact[] @relation("UserContacts")
+  contacted Contact[] @relation("ContactedBy")
+
+  // 消息关系
+  sentMessages     Message[]    @relation("SentMessages")
+  receivedMessages Message[]    @relation("ReceivedMessages")
+  
+  // 私聊消息关系
+  sentPrivateMessages     PrivateMessage[] @relation("SentPrivateMessages")
+  receivedPrivateMessages PrivateMessage[] @relation("ReceivedPrivateMessages")
+
+  // 会话关系
+  sessions  Session[]
+
+  // 好友请求关系
+  sentRequests     FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  contactId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("UserContacts", fields: [userId], references: [id])
+  contact   User     @relation("ContactedBy", fields: [contactId], references: [id])
+
+  @@unique([userId, contactId])
 }
 
 model Message {
   id         Int      @id @default(autoincrement())
   content    String   @db.Text
-  senderId   Int
-  receiverId Int?
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   isPrivate  Boolean  @default(false)
   isRead     Boolean  @default(false)
   revoked    Boolean  @default(false)
-  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
-  receiver   User?    @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  
+  // 添加文件相关字段
+  fileUrl    String?  // 可选的文件 URL
+  fileName   String?  // 可选的文件名
+  fileType   String?  // 可选的文件类型
+  fileSize   Int?     // 可选的文件大小
 
-  @@index([senderId])
-  @@index([receiverId])
+  // 关联
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  senderId   Int
+  receiver   User?    @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  receiverId Int?
 }
 
 model Session {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  user      User      @relation(fields: [userId], references: [id])
-  socketId  String
-  joinedAt  DateTime  @default(now())
-  leftAt    DateTime?
+  id       Int       @id @default(autoincrement())
+  userId   Int
+  socketId String
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user     User      @relation(fields: [userId], references: [id])
 }
 
 model Tags {
@@ -57,14 +88,36 @@ model Tags {
   createdAt DateTime @default(now())
 }
 
-model Contact {
+// 添加好友请求状态枚举
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+// 添加好友请求表
+model FriendRequest {
+  id        Int                @id @default(autoincrement())
+  fromId    Int
+  toId      Int
+  status    FriendRequestStatus @default(PENDING)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  from      User              @relation("SentRequests", fields: [fromId], references: [id])
+  to        User              @relation("ReceivedRequests", fields: [toId], references: [id])
+
+  @@unique([fromId, toId])
+}
+
+model PrivateMessage {
   id        Int      @id @default(autoincrement())
-  userId    Int
-  contactId Int
+  content   String   @db.Text
+  fromId    Int
+  toId      Int
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  revoked   Boolean  @default(false)
 
-  user    User @relation("UserContacts", fields: [userId], references: [id])
-  contact User @relation("ContactedByUsers", fields: [contactId], references: [id])
-
-  @@unique([userId, contactId])
+  sender    User     @relation("SentPrivateMessages", fields: [fromId], references: [id])
+  receiver  User     @relation("ReceivedPrivateMessages", fields: [toId], references: [id])
 } 
