@@ -1,5 +1,4 @@
 import ErrorBoundary from '../components/ErrorBoundary'
-import { routes } from './routes'
 
 export default function ChatLayout({
   children
