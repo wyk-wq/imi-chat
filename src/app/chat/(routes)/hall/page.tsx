@@ -10,6 +10,7 @@ import { ErrorAlert } from '@/app/components/ErrorAlert'
 import { FriendRequest } from '@/app/components/FriendRequest'
 import { FileUpload } from '@/components/FileUpload'
 import { FileMessage } from '@/components/FileMessage'
+import ClearChatButton from '@/components/ClearChatButton'
 
 interface Message {
   id: number
@@ -703,6 +704,10 @@ export default function ChatHall() {
     )
   }
 
+  const handleClearChat = () => {
+    setMessages([]) // 清空本地消息
+  }
+
   // 显示加载状态
   if (isInitializing) {
     return (
@@ -926,9 +931,12 @@ export default function ChatHall() {
       {/* 右侧聊天区域 */}
       <div className="flex-1 flex flex-col">
         {/* 聊天室标题 */}
-        <div className="bg-white shadow-sm px-4 py-2 flex items-center">
-          <h1 className="text-lg font-semibold text-gray-900">聊天大厅</h1>
-          <span className="ml-2 text-sm text-gray-500">({onlineCount} 人在线)</span>
+        <div className="bg-white shadow-sm px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center">
+            <h1 className="text-lg font-semibold text-gray-900">聊天大厅</h1>
+            <span className="ml-2 text-sm text-gray-500">({onlineCount} 人在线)</span>
+          </div>
+          <ClearChatButton onClear={handleClearChat} />
         </div>
 
         {/* 消息列表 */}
