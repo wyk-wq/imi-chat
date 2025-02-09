@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { publicRoutes, authRoutes, DEFAULT_LOGIN_REDIRECT } from './app/routes'
+import { 
+  publicRoutes, 
+  authRoutes, 
+  DEFAULT_LOGIN_REDIRECT,
+  protectedRoutes,
+  apiRoutes
+} from '@/lib/routes'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
