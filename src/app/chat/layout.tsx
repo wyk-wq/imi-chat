@@ -10,6 +10,4 @@ export default function ChatLayout({
       {children}
     </ErrorBoundary>
   )
-}
-
-export const dynamic = 'force-dynamic' 
+} 
